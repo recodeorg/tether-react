@@ -1,3 +1,3 @@
-export { useMutation } from "./UseMutation"
-export { useQuery } from "./UseQuery"
-export { useTether } from "./TetherProvider"
+export { useMutation } from "./UseMutation.js"
+export { useQuery } from "./UseQuery.js"
+export { TetherProvider, useTether } from "./TetherProvider.js"

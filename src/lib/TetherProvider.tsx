@@ -1,9 +1,9 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import { TetherClient } from "tether-ts"
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { TetherClient } from "@tetherdb/client"
 
 const TetherContext = createContext<{tetherClient: TetherClient, token: string | null, setToken: (token: string) => void}|null>(null);
 
-export const TetherProvider = ({ children, url }: { children: React.ReactNode, url: string }) => {
+export const TetherProvider = ({ children, url }: { children: ReactNode, url: string }) => {
     const [tetherClient] = useState(() => new TetherClient())
     const [token, setToken] = useState<string | null>(null)
     
