@@ -20,6 +20,8 @@ export const TetherProvider = ({ children, url }: { children: ReactNode, url: st
     useEffect(() => {
         if (token) {
             tetherClient.setToken(token)
+        } else {
+            tetherClient.setToken("")
         }
     }, [token, tetherClient])
 
