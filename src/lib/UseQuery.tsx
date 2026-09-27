@@ -24,5 +24,5 @@ export function useQuery<T = any>(queryName: string, params: Record<string, any>
         }
     }, [tetherClient, queryName, paramsString, skip])
 
-    return useSyncExternalStore(subscribe, getSnapshot)
+    return useSyncExternalStore(subscribe, getSnapshot, () => undefined /* this will prevent SSR from failing */)
 }
