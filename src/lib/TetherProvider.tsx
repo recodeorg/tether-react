@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { TetherClient } from "@tetherdb/client"
 
-const TetherContext = createContext<{tetherClient: TetherClient, token: string | null, setToken: (token: string) => void}|null>(null);
+const TetherContext = createContext<{tetherClient: TetherClient, token: string | null, setToken: (token: string) => void, logout: () => void}|null>(null);
 
 export const TetherProvider = ({ children, url }: { children: ReactNode, url: string }) => {
     const [tetherClient] = useState(() => new TetherClient())
@@ -25,7 +25,12 @@ export const TetherProvider = ({ children, url }: { children: ReactNode, url: st
         }
     }, [token, tetherClient])
 
-    return <TetherContext.Provider value={{tetherClient, token, setToken}}>{children}</TetherContext.Provider>
+    const logout = () => {
+        tetherClient.logout();
+        setToken("")
+    }
+
+    return <TetherContext.Provider value={{tetherClient, token, setToken, logout}}>{children}</TetherContext.Provider>
 }
 
 export const useTether = () => {
