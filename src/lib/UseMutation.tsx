@@ -1,15 +1,13 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useTether } from "./TetherProvider";
 
-// We add TParams and TResult generics!
 export function useMutation<TParams = Record<string, any>, TResult = any>(mutationName: string) {
     const { tetherClient } = useTether();
-    const [isPending, setIsPending] = useState(false);
+    const [pendingCount, setPendingCount] = useState(0);
     const [error, setError] = useState<Error | null>(null);
 
-    // The function now strictly enforces TParams and promises TResult
-    const mutate = async (params: TParams): Promise<TResult> => {
-        setIsPending(true);
+    const mutate = useCallback(async (params: TParams): Promise<TResult> => {
+        setPendingCount(c => c + 1);
         setError(null);
         
         try {
@@ -20,9 +18,9 @@ export function useMutation<TParams = Record<string, any>, TResult = any>(mutati
             setError(err);
             throw err; 
         } finally {
-            setIsPending(false);
+            setPendingCount(c => Math.max(0, c - 1)); // Math.max just as a safety net
         }
-    };
+    }, [tetherClient, mutationName]);
 
-    return { mutate, isPending, error };
+    return { mutate, isPending: pendingCount > 0, error };
 }
