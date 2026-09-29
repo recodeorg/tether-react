@@ -1,7 +1,7 @@
 {
   "name": "@tetherdb/react",
   "private": false,
-  "version": "0.1.3",
+  "version": "1.0.0",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -23,12 +23,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tetherdb/client": "^0.1.2"
+    "@tetherdb/client": "^1.0.0"
   },
   "peerDependencies": {
     "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.3"
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
