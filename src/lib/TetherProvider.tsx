@@ -10,7 +10,7 @@ function authSnapshot(state: AuthState): AuthState {
     return state
 }
 
-const TetherContext = createContext<{tetherClient: TetherClient, token: string | null, setToken: (token: string) => void, logout: () => void, authState: AuthState}|null>(null);
+const TetherContext = createContext<{tetherClient: TetherClient, token: string | null, setToken: (token: string) => void, logout: () => void, authState: AuthState, url: string}|null>(null);
 
 export const TetherProvider = ({ children, url }: { children: ReactNode, url: string }) => {
     const [tetherClient] = useState(() => new TetherClient())
@@ -44,7 +44,7 @@ export const TetherProvider = ({ children, url }: { children: ReactNode, url: st
         setToken("")
     }
 
-    return <TetherContext.Provider value={{tetherClient, token, setToken, logout, authState}}>{children}</TetherContext.Provider>
+    return <TetherContext.Provider value={{tetherClient, token, setToken, logout, authState, url}}>{children}</TetherContext.Provider>
 }
 
 export const useTether = () => {
