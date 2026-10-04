@@ -1,5 +1,5 @@
 import { useMemo, useSyncExternalStore } from "react";
-import type { TetherClient, TetherError } from "@tetherdb/client";
+import { TetherError, type TetherClient } from "@tetherdb/client";
 import { useTether } from "./TetherProvider";
 
 export type PaginatedQueryResult<T> = {
@@ -84,6 +84,13 @@ function readResponse<T>(data: unknown): PageResponse<T> | undefined {
         HasMore: response.HasMore === true,
         MaxSize: typeof response.MaxSize === "number" ? response.MaxSize : 0,
     }
+}
+
+// With exclusive bounds a page can never begin at its own end or stop at its
+// own start. A query that ignores its cursors keeps returning the same full
+// page, and acting on it would open new pages without end.
+function ignoresBounds<T>(response: PageResponse<T>, { start, end }: Bounds) {
+    return (end !== null && response.StartCursor === end) || (start !== null && response.EndCursor === start)
 }
 
 // Pages run newest to oldest. pages[0] is the active page: its start is
@@ -191,8 +198,12 @@ class PaginatedQuery<T> {
         }
     }
 
-    private receive(subscription: Subscription<T>, data: unknown, error: Error | null) {
-        const response = readResponse<T>(data)
+    private receive(subscription: Subscription<T>, bounds: Bounds, data: unknown, error: Error | null) {
+        let response = readResponse<T>(data)
+        if (response !== undefined && ignoresBounds(response, bounds)) {
+            response = undefined
+            error = new TetherError(`${this.queryName} returned rows outside its StartCursor and EndCursor`)
+        }
         if (response === undefined && error === null && subscription.response !== undefined) {
             // The client clears every query on logout. Bounds found while
             // signed in do not describe what the next user can see.
@@ -310,7 +321,7 @@ class PaginatedQuery<T> {
             const params = { ...this.args, StartCursor: bounds.start, EndCursor: bounds.end }
             subscription.unsubscribe = this.client.subscribe(this.queryName, params, (data, error) => {
                 if (this.subscriptions.get(key) === subscription) {
-                    this.receive(subscription, data, error)
+                    this.receive(subscription, bounds, data, error)
                 }
             })
         }
