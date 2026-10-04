@@ -1,6 +1,8 @@
 export { useMutation } from "./UseMutation.js"
 export { useQuery } from "./UseQuery.js"
 export type { QueryResult } from "./UseQuery.js"
+export { usePaginatedQuery } from "./UsePaginatedQuery.js"
+export type { PaginatedQueryResult } from "./UsePaginatedQuery.js"
 export { TetherProvider, useTether } from "./TetherProvider.js"
 export { Authenticated, Unauthenticated } from "./Authenticated.js"
 export type { AuthState } from "@tetherdb/client"
