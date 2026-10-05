@@ -1,7 +1,23 @@
-import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { TetherClient, type AuthState } from "@tetherdb/client"
 
 const LOGGED_OUT: AuthState = Object.freeze({ authenticated: false, userId: null, error: null })
+
+const DEFAULT_PREFETCH_TTL_MS = 30_000
+
+export type PrefetchOptions = {
+    /** Milliseconds to keep the subscription open. Defaults to 30 seconds. */
+    ttl?: number
+}
+
+export type PrefetchHandle<T> = {
+    /** Closes the prefetch subscription before the ttl runs out. */
+    unsubscribe: () => void
+    /** Resolves with the first data frame. Rejects on a query error, or if the prefetch ends before data arrives. */
+    ready: Promise<T>
+}
+
+export type Prefetch = <T = any>(queryName: string, params?: Record<string, any>, options?: PrefetchOptions) => PrefetchHandle<T>
 
 function authSnapshot(state: AuthState): AuthState {
     if (!state.authenticated && state.userId === null && state.error === null) {
@@ -10,7 +26,41 @@ function authSnapshot(state: AuthState): AuthState {
     return state
 }
 
-const TetherContext = createContext<{tetherClient: TetherClient, token: string | null, setToken: (token: string) => void, logout: () => void, authState: AuthState}|null>(null);
+function prefetchQuery<T>(client: TetherClient, queryName: string, params: Record<string, any>, options: PrefetchOptions): PrefetchHandle<T> {
+    let resolveReady!: (data: T) => void
+    let rejectReady!: (reason: unknown) => void
+    const ready = new Promise<T>((resolve, reject) => {
+        resolveReady = resolve
+        rejectReady = reject
+    })
+    // Callers that only want a warm cache never await this.
+    ready.catch(() => {})
+
+    const release = client.subscribe(queryName, params, (data, error) => {
+        if (error) {
+            rejectReady(error)
+        } else if (data !== undefined) {
+            // Logout delivers undefined with no error.
+            resolveReady(data as T)
+        }
+    })
+
+    let active = true
+    const unsubscribe = () => {
+        if (!active) {
+            return
+        }
+        active = false
+        clearTimeout(timer)
+        release()
+        rejectReady(new Error(`Prefetch of ${queryName} ended before the first data frame arrived`))
+    }
+    const timer = setTimeout(unsubscribe, options.ttl ?? DEFAULT_PREFETCH_TTL_MS)
+
+    return { unsubscribe, ready }
+}
+
+const TetherContext = createContext<{tetherClient: TetherClient, token: string | null, setToken: (token: string) => void, logout: () => void, prefetch: Prefetch, authState: AuthState, url: string}|null>(null);
 
 export const TetherProvider = ({ children, url }: { children: ReactNode, url: string }) => {
     const [tetherClient] = useState(() => new TetherClient())
@@ -44,7 +94,12 @@ export const TetherProvider = ({ children, url }: { children: ReactNode, url: st
         setToken("")
     }
 
-    return <TetherContext.Provider value={{tetherClient, token, setToken, logout, authState}}>{children}</TetherContext.Provider>
+    const prefetch = useCallback<Prefetch>(
+        (queryName, params = {}, options = {}) => prefetchQuery(tetherClient, queryName, params, options),
+        [tetherClient],
+    )
+
+    return <TetherContext.Provider value={{tetherClient, token, setToken, logout, prefetch, authState, url}}>{children}</TetherContext.Provider>
 }
 
 export const useTether = () => {
