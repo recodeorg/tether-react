@@ -22,13 +22,15 @@ export default defineConfig({
   ],
   build: {
     lib: {
-      entry: resolve(import.meta.dirname, 'src/lib/index.ts'),
-      name: 'tether-react',
+      entry: {
+        index: resolve(import.meta.dirname, 'src/lib/index.ts'),
+        clerk: resolve(import.meta.dirname, 'src/lib/clerk.ts'),
+      },
       formats: ['es'],
-      fileName: 'index',
+      fileName: (_format, entryName) => `${entryName}.js`,
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'react/jsx-runtime', '@tetherdb/client'],
+      external: ['react', 'react-dom', 'react/jsx-runtime', '@tetherdb/client', /^@clerk\//],
       output: {
         globals: {
           react: 'React',

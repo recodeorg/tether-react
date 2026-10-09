@@ -2,8 +2,15 @@ import { useMemo, useSyncExternalStore } from "react";
 import type { TetherClient, TetherError } from "@tetherdb/client";
 import { useTether } from "./TetherProvider";
 
+/**
+ * Latest value of a subscribed query.
+ *
+ * @typeParam T - Payload returned by the query.
+ */
 export type QueryResult<T> = {
+    /** Current data, or `undefined` until the first frame arrives. */
     data: T | undefined
+    /** Failure from the latest frame, or `null` when the query has no error. */
     error: TetherError | null
 }
 
@@ -36,6 +43,25 @@ function readQueryResult<T>(client: TetherClient, queryName: string, paramsStrin
     return next
 }
 
+/**
+ * Subscribes to a Tether query and re-renders when its data or error changes.
+ *
+ * The subscription stays open while the component is mounted. Arguments are
+ * compared with `JSON.stringify`, so a new object with the same contents does
+ * not restart the subscription.
+ *
+ * @typeParam T - Payload returned by the query.
+ * @param queryName - Name of the query defined on the server.
+ * @param params - Arguments passed to the query. Pass `"pass"` to skip the
+ * subscription and return `{ data: undefined, error: null }` while arguments
+ * are not ready yet.
+ * @returns The latest data and error.
+ *
+ * @example
+ * ```tsx
+ * const { data, error } = useQuery<Profile>("getProfile", { userId })
+ * ```
+ */
 export function useQuery<T = any>(queryName: string, params: Record<string, any> | "pass" = {}): QueryResult<T> {
     const { tetherClient } = useTether()
     const skip = params === "pass"

@@ -1,7 +1,49 @@
 import { useState, useCallback } from "react";
 import { useTether } from "./TetherProvider";
 
-export function useMutation<TParams = Record<string, any>, TResult = any>(mutationName: string) {
+/**
+ * A mutation bound to the client from {@link useTether}.
+ *
+ * @typeParam TParams - Arguments accepted by {@link MutationResult.mutate}.
+ * @typeParam TResult - Value the mutation resolves with.
+ */
+export type MutationResult<TParams, TResult> = {
+    /**
+     * Sends the mutation and resolves with the server result.
+     *
+     * On failure, stores the error on {@link MutationResult.error} and throws it.
+     *
+     * @param params - Arguments forwarded to the server.
+     */
+    mutate: (params: TParams) => Promise<TResult>
+    /** True while at least one {@link MutationResult.mutate} call has not settled. */
+    isPending: boolean
+    /**
+     * Failure from the latest call.
+     *
+     * Cleared when a later call starts, and `null` before the first failure.
+     */
+    error: Error | null
+}
+
+/**
+ * Prepares a Tether mutation.
+ *
+ * Several calls may be in flight at once. {@link MutationResult.isPending}
+ * stays true until all of them settle.
+ *
+ * @typeParam TParams - Arguments accepted by {@link MutationResult.mutate}. Defaults to a string-keyed record.
+ * @typeParam TResult - Value {@link MutationResult.mutate} resolves with.
+ * @param mutationName - Name of the mutation defined on the server.
+ * @returns The mutate function plus pending and error state.
+ *
+ * @example
+ * ```tsx
+ * const { mutate, isPending } = useMutation<{ roomId: string, text: string }, Message>("sendMessage")
+ * await mutate({ roomId, text })
+ * ```
+ */
+export function useMutation<TParams = Record<string, any>, TResult = any>(mutationName: string): MutationResult<TParams, TResult> {
     const { tetherClient } = useTether();
     const [pendingCount, setPendingCount] = useState(0);
     const [error, setError] = useState<Error | null>(null);
