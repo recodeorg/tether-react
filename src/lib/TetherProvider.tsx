@@ -60,7 +60,7 @@ function prefetchQuery<T>(client: TetherClient, queryName: string, params: Recor
     return { unsubscribe, ready }
 }
 
-const TetherContext = createContext<{tetherClient: TetherClient, token: string | null, setToken: (token: string) => void, logout: () => void, prefetch: Prefetch, authState: AuthState, url: string}|null>(null);
+export const TetherContext = createContext<{tetherClient: TetherClient, token: string | null, setToken: (token: string) => void, logout: () => void, prefetch: Prefetch, authState: AuthState, url: string}|null>(null);
 
 export const TetherProvider = ({ children, url }: { children: ReactNode, url: string }) => {
     const [tetherClient] = useState(() => new TetherClient())
