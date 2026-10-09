@@ -106,6 +106,33 @@ function ClerkAuthSync() {
   return null;
 }
 
+/**
+ * {@link TetherProvider} that keeps the Tether session aligned with Clerk.
+ *
+ * Render this under Clerk's `ClerkProvider`. While Clerk has a signed-in user,
+ * the provider reads a session token, sends it to Tether, and refreshes it
+ * shortly before the token's `exp`. A token with no readable `exp` refreshes
+ * on a fixed interval. Signing out, or a failed token fetch, logs the Tether
+ * session out. A tab that becomes visible again syncs immediately, because
+ * timers are throttled in background tabs.
+ *
+ * Import this from `@tetherdb/react/clerk`. `@clerk/react` is an optional peer
+ * dependency.
+ *
+ * @param children - Tree that may use the Tether hooks.
+ * @param url - WebSocket URL of the Tether server.
+ *
+ * @example
+ * ```tsx
+ * import { TetherProviderWithClerk } from "@tetherdb/react/clerk"
+ *
+ * <ClerkProvider publishableKey={key}>
+ *   <TetherProviderWithClerk url="wss://example.com/tether">
+ *     <App />
+ *   </TetherProviderWithClerk>
+ * </ClerkProvider>
+ * ```
+ */
 export function TetherProviderWithClerk({
   children,
   url,

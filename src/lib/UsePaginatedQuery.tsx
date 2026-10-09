@@ -2,10 +2,24 @@ import { useMemo, useSyncExternalStore } from "react";
 import { TetherError, type TetherClient } from "@tetherdb/client";
 import { useTether } from "./TetherProvider";
 
+/**
+ * Loaded pages of a cursor query, from newest to oldest.
+ *
+ * @typeParam T - Row type inside each page.
+ */
 export type PaginatedQueryResult<T> = {
+    /** Rows from every loaded page, or `undefined` until the first page arrives. */
     data: T[] | undefined
+    /** Error from the newest page that failed, or `null`. */
     error: TetherError | null
+    /** Whether the server has rows older than the oldest loaded page. */
     hasMore: boolean
+    /**
+     * Requests the next older page.
+     *
+     * Does nothing while the oldest page is still loading, when that page has
+     * no end cursor, or when {@link PaginatedQueryResult.hasMore} is false.
+     */
     loadMore: () => void
 }
 
@@ -372,6 +386,27 @@ class PaginatedQuery<T> {
     }
 }
 
+/**
+ * Subscribes to a cursor-paginated query and stitches the pages into one list.
+ *
+ * The hook owns `StartCursor` and `EndCursor`. Other fields in `params` are
+ * sent with every page. Pages run newest to oldest: new rows arrive on the
+ * first page, and {@link PaginatedQueryResult.loadMore} walks toward older rows.
+ *
+ * Arguments are compared with `JSON.stringify`, so a new object with the same
+ * contents does not restart the subscription.
+ *
+ * @typeParam T - Row type inside each page.
+ * @param queryName - Name of the query defined on the server.
+ * @param params - Arguments sent with every page. Pass `"pass"` to skip the
+ * subscription and return an empty result while arguments are not ready yet.
+ * @returns The combined rows, error, and a way to load older pages.
+ *
+ * @example
+ * ```tsx
+ * const { data, hasMore, loadMore } = usePaginatedQuery<Message>("listMessages", { roomId })
+ * ```
+ */
 export function usePaginatedQuery<T = any>(queryName: string, params: Record<string, any> | "pass" = {}): PaginatedQueryResult<T> {
     const { tetherClient } = useTether()
     const skip = params === "pass"
